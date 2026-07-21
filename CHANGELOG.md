@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.0.1 — Pilot-name hotfix
+
+- Prevent gameplay and menu shortcuts from intercepting keystrokes while a
+  text field is focused.
+- Pilot names can now include every permitted letter, including control keys
+  such as `P`, `C`, `F`, `X`, `W`, `A`, `S`, and `D`.
+
 ## v1.0.0 — Launch
 
 - Complete single-file neon arcade survival game.
