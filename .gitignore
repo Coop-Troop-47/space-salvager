@@ -1,0 +1,5 @@
+.DS_Store
+leaderboard-worker/.wrangler/
+leaderboard-worker/node_modules/
+leaderboard-worker/.dev.vars*
+leaderboard-worker/.env*
