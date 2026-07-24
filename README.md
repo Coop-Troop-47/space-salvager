@@ -28,6 +28,6 @@ checks. Local best runs continue to work if the network is unavailable.
 
 ## Releases
 
-The current version is **v1.0.1**. The main menu checks the public GitHub
+The current version is **v1.0.2**. The main menu checks the public GitHub
 release feed periodically and offers the new single-file build when a newer
 semantic version is available.

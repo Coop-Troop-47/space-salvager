@@ -1,6 +1,16 @@
 const PROTOCOL_VERSION = 2;
 const RUN_LIFETIME_MS = 6 * 60 * 60 * 1000;
 const encoder = new TextEncoder();
+const SCORE_RECOVERIES = [
+  {
+    id: "recovery:matthew:211646:2026-07-24",
+    name: "MATTHEW",
+    score: 211646,
+    level: 19,
+    cores: 300,
+    date: "2026-07-24T03:37:01.000Z",
+  },
+];
 
 function json(data, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(data), {
@@ -52,6 +62,24 @@ function cleanInteger(value, minimum, maximum) {
   if (!Number.isInteger(parsed) || parsed < minimum || parsed > maximum)
     return null;
   return parsed;
+}
+
+function usesLegacyBossCadence(version) {
+  const match = String(version || "").match(/^v?(\d+)\.(\d+)\.(\d+)/i);
+  if (!match) return false;
+  const [, major, minor, patch] = match.map(Number);
+  return major === 1 && minor === 0 && patch <= 1;
+}
+
+function sortScores(scores) {
+  return scores
+    .sort(
+      (left, right) =>
+        right.score - left.score ||
+        right.level - left.level ||
+        left.date.localeCompare(right.date),
+    )
+    .slice(0, 50);
 }
 
 async function fingerprintRequest(request) {
@@ -196,6 +224,7 @@ export class LeaderboardStore {
   }
 
   async leaderboard() {
+    await this.applyScoreRecoveries();
     const scores = (await this.storage.get("leaderboard:scores")) || [];
     return scores.slice(0, 10).map((row, index) => ({
       rank: index + 1,
@@ -206,6 +235,20 @@ export class LeaderboardStore {
       date: row.date,
       verified: true,
     }));
+  }
+
+  async applyScoreRecoveries() {
+    const migrationKey = "migration:score-recoveries:2026-07-24";
+    if (await this.storage.get(migrationKey)) return;
+    const existing = (await this.storage.get("leaderboard:scores")) || [],
+      recovered = SCORE_RECOVERIES.filter(
+        (row) => !existing.some((candidate) => candidate.id === row.id),
+      ),
+      scores = sortScores([...existing, ...recovered]);
+    await this.storage.put({
+      "leaderboard:scores": scores,
+      [migrationKey]: true,
+    });
   }
 
   async startRun(request, fingerprint) {
@@ -320,8 +363,11 @@ export class LeaderboardStore {
         (next.counts.enemy_seeker || 0) +
         (next.counts.enemy_strafer || 0) +
         (next.counts.enemy_charger || 0),
-      expectedBosses =
-        next.level < 7 ? 0 : 1 + Math.floor((next.level - 7) / 10);
+      expectedBosses = usesLegacyBossCadence(next.gameVersion)
+        ? Math.floor(next.level / 7)
+        : next.level < 7
+          ? 0
+          : 1 + Math.floor((next.level - 7) / 10);
     if ((next.counts.core || 0) > 12 + seconds * 2.2)
       throw new Error("implausible_core_rate");
     if (asteroidCount > 18 + seconds * 4.5)
@@ -445,6 +491,7 @@ export class LeaderboardStore {
     if (now - run.createdAt < 8_000 || run.score <= 0)
       return apiError(422, "run_too_short", "The run is not eligible for the leaderboard.");
 
+    await this.applyScoreRecoveries();
     const finished = {
         ...run,
         status: "finished",
@@ -461,14 +508,10 @@ export class LeaderboardStore {
         date: new Date(now).toISOString(),
       },
       existing = (await this.storage.get("leaderboard:scores")) || [],
-      scores = [...existing.filter((candidate) => candidate.id !== run.id), row]
-        .sort(
-          (left, right) =>
-            right.score - left.score ||
-            right.level - left.level ||
-            left.date.localeCompare(right.date),
-        )
-        .slice(0, 50);
+      scores = sortScores([
+        ...existing.filter((candidate) => candidate.id !== run.id),
+        row,
+      ]);
     await this.storage.put({
       [`run:${run.id}`]: finished,
       "leaderboard:scores": scores,

@@ -2122,9 +2122,9 @@
               class="game-version"
               id="game-version"
               type="button"
-              aria-label="Version 1.0.1. Check for updates"
+              aria-label="Version 1.0.2. Check for updates"
             >
-              v1.0.1
+              v1.0.2
             </button>
           </div>
         </section>
@@ -2141,9 +2141,9 @@
             <div class="update-kicker">RELEASE SIGNAL RECEIVED</div>
             <h2>UPDATE AVAILABLE</h2>
             <div class="update-versions">
-              <span id="update-current">v1.0.1</span>
+              <span id="update-current">v1.0.2</span>
               <span>→</span>
-              <span id="update-latest">v1.0.2</span>
+              <span id="update-latest">v1.0.3</span>
             </div>
             <p class="update-copy">
               Download the newest single-file build. Your local best run remains
@@ -2557,7 +2557,7 @@
           BOSS_SEEK_SPEED = 126,
           BOSS_ENRAGED_SEEK_SPEED = 166,
           LEADERBOARD_PROTOCOL = 2,
-          GAME_VERSION = "1.0.1",
+          GAME_VERSION = "1.0.2",
           RELEASES_API =
             "https://api.github.com/repos/Coop-Troop-47/space-salvager/releases/latest",
           UPDATE_CHECK_INTERVAL = 6 * 60 * 60 * 1000,
@@ -5430,7 +5430,7 @@
         }
 
         function isBossWave(wave = level) {
-          return wave > 0 && wave % 7 === 0;
+          return wave >= 7 && (wave - 7) % 10 === 0;
         }
         function hostileDroneCount() {
           return drones.filter((d) => !d.dead && !d.friendly).length;
